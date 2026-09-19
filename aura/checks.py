@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from aura.corpus import corpus_completo
 from aura.facts import extract_currency, extract_days, extract_percent, extract_facts
@@ -19,6 +20,8 @@ CORPUS_NUMEROS = {
 _ANOS = re.compile(r"(\d+)\s+anos")
 _MESES = re.compile(r"(\d+)\s+meses")
 _SCORE = re.compile(r"score\D{0,30}(\d{3,4})")
+
+_DOCS_DIR = Path(__file__).parent / "docs"
 
 
 def _extrair_criterios(texto: str) -> dict[str, set[int]]:
@@ -56,6 +59,23 @@ def factos_na_resposta(resposta: dict, fatos: dict) -> list[str]:
         if fonte not in fontes:
             erros.append(f"source {fonte!r} ausente (fontes={fontes})")
 
+    return erros
+
+
+def fatos_no_corpus(fatos: dict) -> list[str]:
+    """Verifica que os fatos esperados de um caso existem no corpus.
+
+    Garante que o golden dataset não pede um fato que os documentos não
+    sustentam (o que invalidaria a suíte).
+    """
+    erros: list[str] = []
+    for tipo in ("currency", "percent", "days"):
+        for valor in fatos.get(tipo, []):
+            if valor not in CORPUS_NUMEROS[tipo]:
+                erros.append(f"{tipo}:{valor} ausente no corpus")
+    for fonte in fatos.get("sources", []):
+        if not (_DOCS_DIR / fonte).exists():
+            erros.append(f"documento {fonte!r} ausente no corpus")
     return erros
 
 

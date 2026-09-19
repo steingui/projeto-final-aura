@@ -20,7 +20,7 @@ flowchart LR
     C[AURA API no ar] --> D[record_golden.py]
     D --> A
     C --> E[Testes live pytest -m live]
-    B --> F[fatos.py / checks.py]
+    B --> F[facts.py / checks.py]
     E --> F
     F --> G[corpus.py — 4 documentos]
 ```
@@ -38,7 +38,7 @@ projeto-final-aura/
 │   ├── record_golden.py   # grava o golden contra o sistema no ar (rodar 1x)
 │   └── docs/              # espelho dos 4 documentos do backend/docs (branch main)
 ├── tests/                 # pytest (offline por padrão)
-├── data/golden.json       # golden dataset versionado
+├── data/golden.json       # golden dataset versionado (perguntas + fatos esperados)
 ├── requirements.txt
 ├── pytest.ini
 └── .env.example
@@ -60,7 +60,7 @@ export AURA_SENHA=sua-senha
 .venv/bin/python -m pytest -q -m live
 ```
 
-### Gravar (ou regravar) o golden dataset
+### Gravar o golden dataset
 
 A cota do LLM é uma só para a turma inteira. Grave **uma vez** e rode a
 suíte repetida contra a gravação:
@@ -71,9 +71,9 @@ export AURA_SENHA=sua-senha
 .venv/bin/python -m aura.record_golden
 ```
 
-Isso bate no `/chat` real, espaça as chamadas (sleep de 5 s, abaixo do
-limite de 20/min) e grava [`data/golden.json`](data/golden.json) com as
-respostas e a data da coleta.
+Isso lê as perguntas e fatos esperados de [`data/golden.json`](data/golden.json),
+bate no `/chat` real, espaça as chamadas (sleep de 5 s, abaixo do limite de
+20/min) e grava as respostas com a data da coleta no mesmo arquivo.
 
 ## Regras respeitadas
 
@@ -92,21 +92,17 @@ platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0
 rootdir: /home/gui/Área de trabalho/repositories/projeto-final-aura
 configfile: pytest.ini
 testpaths: tests
-collected 70 items
+collected 77 items
 ...
-======================== 55 passed, 15 skipped in 0.04s ========================
+======================== 35 passed, 42 skipped in 0.05s ========================
 ```
 
-Os 15 `skipped` são os testes marcados `@pytest.mark.live`, pulados porque
-`AURA_USUARIO`/`AURA_SENHA` não estão definidos no ambiente desta execução.
-Com as credenciais do grupo e `-m live`, eles batem no sistema de verdade.
+Os 42 `skipped` são os testes que dependem da gravação das respostas reais
+(ainda não executada) e os marcados `@pytest.mark.live`. Após rodar
+`python -m aura.record_golden` com as credenciais do grupo, eles passam a
+rodar contra os dados gravados; com `-m live`, batem no sistema de verdade.
 
 ## Falhas encontradas
 
-> A documentar após a primeira execução `live` contra o sistema real, no
-> formato exigido: o teste que falha, a pergunta, a resposta recebida e a data.
-
-O golden dataset atual em [`data/golden.json`](data/golden.json) é um
-espelho sintético usado para validar a mecânica da suíte (offline). Para a
-entrega, regrave-o com `python -m aura.record_golden` usando a conta do
-grupo.
+> A documentar após a primeira execução contra o sistema real, no formato
+> exigido: o teste que falha, a pergunta, a resposta recebida e a data.
