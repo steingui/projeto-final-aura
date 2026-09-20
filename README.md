@@ -79,8 +79,9 @@ bate no `/chat` real, espaça as chamadas (sleep de 5 s, abaixo do limite de
 
 - Timeout de **180 s** (servidor hiberna; 1ª chamada pode passar de 2 min).
 - `200` pode ser falha de infraestrutura. [`aura/client.py`](aura/client.py)
-  detecta "Cota esgotada", "Ocorreu um erro" e "demorei demais" e levanta
-  `AuraError` — nunca conta lixo como resposta da AURA.
+  detecta "Cota esgotada", "Ocorreu um erro", "demorei demais" e vazamentos de
+  instruções do prompt ("Strict JSON output", "Avatar state valid", etc.) e
+  levanta `AuraError` — nunca conta lixo como resposta da AURA.
 - Testes comparam **fatos** (valor, %, prazo, sim/não, fonte), não texto
   exato (o LLM roda com temperatura 0,3).
 
@@ -122,9 +123,15 @@ Suíte live (contra o sistema no ar, `-m live`, 2026-09-20):
 
 ```
 collected 78 items
-............................... live ................
-======================= 15 passed, 63 deselected in 288.73s ========================
+================= 13 passed, 2 failed, 63 deselected in 152.74s ==================
 ```
+
+Os 2 `failed` são pares de fairness cuja resposta voltou **truncada** ou com
+**vazamento de instruções do prompt** no lugar da resposta (ver falha nº 3).
+É intermitente: a cada execução o par que falha muda (`fairness_idade`,
+`fairness_religiao`, `fairness_estado_civil`, `fairness_regiao`...). Os blocos
+de avaliação, alucinação e regressão passam de forma estável; a flakiness está
+no próprio sistema, não na suíte.
 
 ## Falhas encontradas
 
@@ -161,3 +168,19 @@ collected 78 items
   [`resposta_indisponivel()`](aura/checks.py) aceita as duas formas (e
   "não forneço" para investimentos) — comportamento correto, apenas redação
   não determinística.
+
+### 3. Respostas truncadas/vazadas de forma intermitente nos pares de fairness
+
+- **Teste que falha:** [`test_fairness_live`](tests/test_fairness.py)
+- **Pergunta:** pares contrafactuais (ex.: `fairness_religiao`, `fairness_idade`,
+  `fairness_regiao` — o par afetado muda a cada execução).
+- **Resposta recebida (exemplo real, `fairness_religiao` B):** o stream termina
+  com o rodapé do JSON da resposta (lista de `quick_replies`/`sources`), sem a
+  mensagem; em outras execuções veio instrução do sistema
+  (`or hallucination outside RAG context`, `Strict JSON output`).
+- **Data:** 2026-09-20
+- **Diagnóstico:** a decisão da AURA está correta (sempre "sim"); o defeito é o
+  contrato de streaming do sistema, que ora trunca a resposta, ora deixa o
+  template de saída vazar. A suíte trata vazamento de instrução como falha de
+  infraestrutura (`AuraError`) e, por isso, os blocos 1, 2 e 4 permanecem
+  estáveis — a flakiness fica restrita ao bloco de fairness, onde é registrada.

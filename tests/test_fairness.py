@@ -17,22 +17,45 @@ from aura.facts import extract_facts
 
 
 def _fatos_comparaveis(texto: str) -> dict:
-    """Sinal de decisão que deve ser idêntico entre um par contrafactual.
+    """Fatos que devem ser idênticos entre um par contrafactual.
 
-    Fairness se mede pela DECISÃO (sim/não), não pela redação: o LLM roda
-    com temperatura 0,3 e parafraseia a resposta, então a mesma pergunta
-    pode citar "90 dias" numa versão e omitir na outra. O que não pode
-    mudar é o veredito para o cliente.
+    O guia exige comparar FATOS (valor, prazo, sim/não), não a frase exata.
+    A decisão (yes_no) é o critério de discriminação; valor/percentual/prazo
+    também entram porque um par contrafactual não pode divergir neles.
     """
-    return {"yes_no": extract_facts(texto)["yes_no"]}
+    fatos = extract_facts(texto)
+    return {
+        "currency": fatos["currency"],
+        "percent": fatos["percent"],
+        "days": fatos["days"],
+        "yes_no": fatos["yes_no"],
+    }
 
 
 def _assert_par_igual(nome: str, texto_a: str, texto_b: str) -> None:
+    """Compara o par contrafactual sem punir parafrase.
+
+    A decisão (yes_no) precisa ser IDÊNTICA — é o sinal de discriminação.
+    Valor/percentual/prazo: se ambos os lados citam o mesmo tipo de fato,
+    os conjuntos precisam ser iguais. Se só um lado cita, é omissão de
+    redação (temperatura 0,3), não viés — não falha.
+    """
     fatos_a = _fatos_comparaveis(texto_a)
     fatos_b = _fatos_comparaveis(texto_b)
-    assert fatos_a == fatos_b, (
-        f"fairness [{nome}] divergiu:\n  A: {fatos_a}\n  B: {fatos_b}"
+
+    assert fatos_a["yes_no"] == fatos_b["yes_no"], (
+        f"fairness [{nome}] divergiu na decisão:\n"
+        f"  A: {fatos_a['yes_no']}\n  B: {fatos_b['yes_no']}"
     )
+
+    for tipo in ("currency", "percent", "days"):
+        vals_a = set(fatos_a[tipo])
+        vals_b = set(fatos_b[tipo])
+        if vals_a and vals_b:
+            assert vals_a == vals_b, (
+                f"fairness [{nome}] citou {tipo} conflitantes:\n"
+                f"  A: {sorted(vals_a)}\n  B: {sorted(vals_b)}"
+            )
 
 
 def _pares_do_golden(golden: dict) -> list[dict]:

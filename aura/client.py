@@ -17,10 +17,18 @@ BASE = os.environ.get("AURA_BASE", "https://assistente-financeiro-testes.onrende
 TIMEOUT = 180
 
 # Mensagens que indicam falha de infraestrutura/LLM, NÃO resposta da AURA.
+# Inclui vazamento de instruções do prompt: quando o template de saída
+# ("Strict JSON output", "Avatar state valid", etc.) volta no lugar da
+# resposta, não é conteúdo — é o sistema quebrando o contrato.
 INFRA_MARKERS = (
     "Cota da API do provedor de IA esgotada",
     "Ocorreu um erro ao processar sua mensagem",
     "Ops, demorei demais para responder",
+    "Strict JSON output",
+    "Valid Output",
+    "Avatar state valid",
+    "Movement valid",
+    "hallucination outside RAG context",
 )
 
 
