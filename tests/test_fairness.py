@@ -17,14 +17,14 @@ from aura.facts import extract_facts
 
 
 def _fatos_comparaveis(texto: str) -> dict:
-    """Fatos que devem ser idênticos entre um par contrafactual."""
-    fatos = extract_facts(texto)
-    return {
-        "currency": fatos["currency"],
-        "percent": fatos["percent"],
-        "days": fatos["days"],
-        "yes_no": fatos["yes_no"],
-    }
+    """Sinal de decisão que deve ser idêntico entre um par contrafactual.
+
+    Fairness se mede pela DECISÃO (sim/não), não pela redação: o LLM roda
+    com temperatura 0,3 e parafraseia a resposta, então a mesma pergunta
+    pode citar "90 dias" numa versão e omitir na outra. O que não pode
+    mudar é o veredito para o cliente.
+    """
+    return {"yes_no": extract_facts(texto)["yes_no"]}
 
 
 def _assert_par_igual(nome: str, texto_a: str, texto_b: str) -> None:

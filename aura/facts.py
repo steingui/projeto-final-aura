@@ -37,25 +37,18 @@ def extract_days(texto: str) -> list[int]:
 def extract_yes_no(texto: str) -> bool | None:
     """Sim -> True, Não -> False, indeterminado -> None.
 
-    Heurística pragmática: decide pela primeira ocorrência explícita no texto.
+    Heurística pragmática: decide pela PRIMEIRA ocorrência explícita de
+    "sim"/"não" no texto. A resposta típica abre com o veredito
+    ("Sim, você pode..."); o "não" de "não influencia" vem depois e não
+    pode inverter a decisão.
     """
     t = texto.lower()
-    # Padrões de negação forte que indicam "não".
-    negativos = (
-        r"\bnão\b",
-        r"\bnunca\b",
-        r"\bsem\s+tarifa",
-        r"\bnão\s+há\b",
-        r"\bnão\s+existe\b",
-        r"\bnão\s+está\s+disponível\b",
-        r"\bnão\s+posso\b",
-        r"\bnão\s+promete\b",
-    )
-    for padrao in negativos:
-        if re.search(padrao, t):
-            return False
-    if re.search(r"\bsim\b", t):
+    sim = re.search(r"\bsim\b", t)
+    nao = re.search(r"\bnão\b|\bnao\b", t)
+    if sim and (nao is None or sim.start() < nao.start()):
         return True
+    if nao:
+        return False
     return None
 
 

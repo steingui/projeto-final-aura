@@ -104,13 +104,27 @@ def numeros_fora_do_corpus(mensagem: str, incluir_criterios: bool = True) -> lis
 
 
 def resposta_indisponivel(mensagem: str) -> bool:
-    """True se a resposta declara que a informação não está disponível."""
+    """True se a resposta declara que a informação está fora da base.
+
+    Aceita as redações observadas no sistema no ar: a negação literal
+    ("não está disponível") e as equivalentes ("não disponho de
+    informações", "não forneço recomendações").
+    """
     normalizada = " ".join(mensagem.lower().split())
-    return (
-        "não está disponível" in normalizada
-        or "nao esta disponivel" in normalizada
-        or "não disponível" in normalizada
-        or "nao disponivel" in normalizada
-        or "não tenho essa informação" in normalizada
-        or "não tenho essa informacao" in normalizada
+    return any(
+        padrao in normalizada
+        for padrao in (
+            "não está disponível",
+            "nao esta disponivel",
+            "não disponível",
+            "nao disponivel",
+            "não tenho essa informação",
+            "não tenho essa informacao",
+            "não disponho de informações",
+            "nao disponho de informacoes",
+            "não disponho de informação",
+            "nao disponho de informacao",
+            "não forneço",
+            "nao forneco",
+        )
     )

@@ -69,3 +69,30 @@ def test_criterio_valido_nao_e_sinalizado() -> None:
         "e 12 meses de relacionamento."
     )
     assert numeros_fora_do_corpus(mensagem) == []
+
+
+# ---------------------------------------------------------------------------
+# Vazamento de instruções do prompt para a resposta
+# ---------------------------------------------------------------------------
+_VAZAMENTOS = (
+    "Valid Output",
+    "Must strictly be the JSON object",
+    "```json",
+)
+
+
+def test_resposta_nao_vaza_instrucoes_do_prompt(golden: dict) -> None:
+    """A resposta ao cliente não pode trazer instrução de formato do sistema.
+
+    Uma resposta real do AURA veio com "Valid Output*: Must strictly be the
+    JSON object" e outras vieram embrulhadas em ```json. Isso é vazamento de
+    prompt — o template de saída foi parar na mensagem exibida ao usuário.
+    """
+    mensagens = _mensagens_do_golden(golden)
+    if not mensagens:
+        pytest.skip("respostas ainda não gravadas — rode `python -m aura.record_golden`")
+    for case_id, mensagem in mensagens:
+        for marcador in _VAZAMENTOS:
+            assert marcador not in mensagem, (
+                f"{case_id}: vazou {marcador!r} em {mensagem!r}"
+            )
